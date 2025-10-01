@@ -60,6 +60,23 @@ function setupEventListeners() {
             filterRestaurants(genre);
         });
     });
+    
+    // モバイルタブ切り替え
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            switchToTab(targetTab);
+        });
+    });
+    
+    // 地図クローズボタン
+    const closeBtn = document.querySelector('[data-action="close-map"]');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            switchToTab('list');
+        });
+    }
 }
 
 // レストランフィルタリング
@@ -77,6 +94,7 @@ function filterRestaurants(genre) {
     
     displayRestaurants(filteredRestaurants);
     updateMapMarkers(filteredRestaurants);
+    updateRestaurantCount(filteredRestaurants.length);
 }
 
 // レストランリスト表示
@@ -93,7 +111,7 @@ function displayRestaurants(restaurantList) {
         const nearbySpots = findNearbyPhotoSpots(restaurant);
         
         return `
-            <div class="restaurant-card" data-id="${restaurant.id}" onclick="showRestaurantOnMap(${restaurant.id})">
+            <div class="restaurant-card" data-id="${restaurant.id}" onclick="handleRestaurantClick(${restaurant.id})"
                 <div class="restaurant-name">${restaurant.name}</div>
                 <span class="restaurant-genre">${restaurant.genre}</span>
                 <div class="restaurant-price">💰 ${restaurant.price}円</div>
@@ -305,5 +323,61 @@ function showMapPlaceholder() {
         'Google Maps API 設定後に地図が表示されます</div></div>';
 }
 
+// タブ切り替え機能
+function switchToTab(tabName) {
+    // タブボタンのアクティブ状態切り替え
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // パネルの表示切り替え
+    const listPanel = document.getElementById('list-panel');
+    const mapPanel = document.getElementById('map-panel');
+    
+    if (tabName === 'list') {
+        listPanel.classList.add('active');
+        mapPanel.classList.remove('active');
+    } else if (tabName === 'map') {
+        mapPanel.classList.add('active');
+        listPanel.classList.remove('active');
+        
+        // 地図のリサイズトリガー
+        if (map) {
+            setTimeout(() => {
+                google.maps.event.trigger(map, 'resize');
+                map.setCenter({ lat: 33.2180, lng: 132.9360 });
+            }, 300);
+        }
+    }
+}
+
+// レストラン件数更新
+function updateRestaurantCount(count) {
+    const countElement = document.getElementById('restaurant-count');
+    if (countElement) {
+        countElement.textContent = `${count}件`;
+    }
+}
+
+// レストランクリック処理（レスポンシブ対応）
+function handleRestaurantClick(restaurantId) {
+    // モバイルの場合は地図タブに切り替え
+    if (window.innerWidth < 768) {
+        switchToTab('map');
+        setTimeout(() => {
+            showRestaurantOnMap(restaurantId);
+        }, 300);
+    } else {
+        // デスクトップの場合は直接地図に表示
+        showRestaurantOnMap(restaurantId);
+    }
+}
+
 // Google Maps APIコールバック（グローバル関数として定義）
 window.initMap = initMap;
+window.switchToTab = switchToTab;

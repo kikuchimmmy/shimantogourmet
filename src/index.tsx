@@ -91,13 +91,32 @@ app.get('/', (c) => {
   return c.render(
     <div id="app">
       <header className="hero-section">
-        <h1>🚃 四万十町グルメガイド</h1>
-        <p>地元高校生おすすめの飲食店 × 写真スポット</p>
+        <div className="hero-content">
+          <h1>🚃 四万十町グルメガイド</h1>
+          <p>地元高校生おすすめの飲食店 × 写真スポット</p>
+          <div className="hero-subtitle">
+            <i className="fas fa-train"></i> 汽車で訪れる観光客のためのガイド
+          </div>
+        </div>
       </header>
+      
+      <nav className="mobile-tabs" id="mobile-tabs">
+        <button className="tab-btn active" data-tab="list">
+          <i className="fas fa-list"></i>
+          <span>お店一覧</span>
+        </button>
+        <button className="tab-btn" data-tab="map">
+          <i className="fas fa-map"></i>
+          <span>地図</span>
+        </button>
+      </nav>
       
       <div className="container">
         <div className="filter-section">
-          <h3>ジャンルで探す</h3>
+          <div className="filter-header">
+            <h3>ジャンルで探す</h3>
+            <div className="restaurant-count" id="restaurant-count">13件</div>
+          </div>
           <div id="genre-filters" className="filter-buttons">
             <button className="filter-btn active" data-genre="all">すべて</button>
             <button className="filter-btn" data-genre="定食類">定食類</button>
@@ -108,12 +127,23 @@ app.get('/', (c) => {
         </div>
 
         <div className="main-content">
-          <div className="map-section">
-            <div id="map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
+          <div className="content-panel map-panel" id="map-panel">
+            <div className="panel-header">
+              <h3><i className="fas fa-map-marked-alt"></i> 地図</h3>
+              <button className="close-btn desktop-hidden" data-action="close-map">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div id="map" className="map-container"></div>
           </div>
           
-          <div id="restaurant-list" className="restaurant-list">
-            <div className="loading">データを読み込み中...</div>
+          <div className="content-panel list-panel active" id="list-panel">
+            <div className="panel-header">
+              <h3><i className="fas fa-utensils"></i> お店一覧</h3>
+            </div>
+            <div id="restaurant-list" className="restaurant-list">
+              <div className="loading">データを読み込み中...</div>
+            </div>
           </div>
         </div>
       </div>
