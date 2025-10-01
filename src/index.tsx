@@ -71,7 +71,11 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-const app = new Hono()
+type Bindings = {
+  GOOGLE_MAPS_API_KEY: string;
+}
+
+const app = new Hono<{ Bindings: Bindings }>()
 
 // CORS設定（API用）
 app.use('/api/*', cors())
@@ -176,6 +180,15 @@ app.get('/api/photo-spots', async (c) => {
   const mockData = []
   
   return c.json({ spots: mockData })
+})
+
+// API: Google Maps APIキー取得
+app.get('/api/config', async (c) => {
+  const { env } = c;
+  
+  return c.json({
+    googleMapsApiKey: env.GOOGLE_MAPS_API_KEY || 'YOUR_API_KEY_HERE'
+  });
 })
 
 export default app

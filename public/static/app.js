@@ -16,17 +16,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // イベントリスナー設定
     setupEventListeners();
     
-    // 地図が読み込まれるまで待機
-    if (typeof google !== 'undefined' && google.maps) {
-        initMap();
-    } else {
-        // Google Maps APIが読み込まれていない場合の処理
-        console.log('Google Maps API未読み込み - 地図機能は無効です');
-        document.getElementById('map').innerHTML = 
-            '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; color: #6b7280; text-align: center; padding: 2rem;">' +
-            '<div><i class="fas fa-map-marked-alt" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>' +
-            'Google Maps API設定後に地図が表示されます</div></div>';
-    }
+    // Google Maps API を動的に読み込み
+    await initializeGoogleMaps();
 });
 
 // データ読み込み
@@ -267,6 +258,51 @@ function showRestaurantOnMap(restaurantId) {
     if (marker) {
         google.maps.event.trigger(marker, 'click');
     }
+}
+
+// Google Maps API を動的に読み込み
+async function initializeGoogleMaps() {
+    try {
+        console.log('Google Maps API 設定を取得中...');
+        
+        // API設定を取得
+        const configResponse = await axios.get('/api/config');
+        const apiKey = configResponse.data.googleMapsApiKey;
+        
+        if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+            console.log('Google Maps API キーが設定されていません');
+            showMapPlaceholder();
+            return;
+        }
+        
+        console.log('Google Maps API を読み込み中...');
+        
+        // Google Maps API スクリプトを動的に読み込み
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=ja&region=JP&callback=initMap`;
+        script.async = true;
+        script.defer = true;
+        
+        // エラーハンドリング
+        script.onerror = function() {
+            console.error('Google Maps API の読み込みに失敗しました');
+            showMapPlaceholder();
+        };
+        
+        document.head.appendChild(script);
+        
+    } catch (error) {
+        console.error('Google Maps API 設定の取得に失敗:', error);
+        showMapPlaceholder();
+    }
+}
+
+// 地図のプレースホルダーを表示
+function showMapPlaceholder() {
+    document.getElementById('map').innerHTML = 
+        '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; color: #6b7280; text-align: center; padding: 2rem;">' +
+        '<div><i class="fas fa-map-marked-alt" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>' +
+        'Google Maps API 設定後に地図が表示されます</div></div>';
 }
 
 // Google Maps APIコールバック（グローバル関数として定義）
