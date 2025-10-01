@@ -258,6 +258,22 @@ body {
   transition: all 0.2s;
   cursor: pointer;
   position: relative;
+  display: flex;
+  gap: 1rem;
+}
+
+.restaurant-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f3f4f6;
+  flex-shrink: 0;
+}
+
+.restaurant-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .restaurant-card:hover {
@@ -269,8 +285,8 @@ body {
 }
 
 .restaurant-name {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: 700;
   color: #1f2937;
   margin-bottom: 0.5rem;
   line-height: 1.3;
@@ -486,8 +502,13 @@ body {
     padding: 0.75rem;
   }
   
+  .restaurant-image {
+    width: 70px;
+    height: 70px;
+  }
+  
   .restaurant-name {
-    font-size: 1rem;
+    font-size: 1.2rem;
   }
   
   /* フローティングアクションボタン風のスタイル */

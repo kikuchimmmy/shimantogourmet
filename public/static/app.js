@@ -110,9 +110,14 @@ function displayRestaurants(restaurantList) {
         // 近くの写真スポット検索
         const nearbySpots = findNearbyPhotoSpots(restaurant);
         
+        // ダミー写真のURL（後でスプレッドシートの写真と連動）
+        const imageUrl = getRestaurantImage(restaurant);
+        
         return `
-            <div class="restaurant-card" data-id="${restaurant.id}" onclick="handleRestaurantClick(${restaurant.id})"
-                <div class="restaurant-name">${restaurant.name}</div>
+            <div class="restaurant-card" data-id="${restaurant.id}" onclick="handleRestaurantClick(${restaurant.id})">
+                <img src="${imageUrl}" alt="${restaurant.name}" class="restaurant-image" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center'">
+                <div class="restaurant-content">
+                    <div class="restaurant-name">${restaurant.name}</div>
                 <span class="restaurant-genre">${restaurant.genre}</span>
                 <div class="restaurant-price">💰 ${restaurant.price}円</div>
                 <div class="restaurant-review">"${restaurant.review}"</div>
@@ -132,9 +137,10 @@ function displayRestaurants(restaurantList) {
                     </div>
                 ` : ''}
                 
-                <div class="restaurant-info">
-                    <span><i class="fas fa-phone"></i> ${restaurant.phone}</span>
-                    <span><i class="fas fa-map-marker-alt"></i> 地図で見る</span>
+                    <div class="restaurant-info">
+                        <span><i class="fas fa-phone"></i> ${restaurant.phone}</span>
+                        <span><i class="fas fa-map-marker-alt"></i> 地図で見る</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -362,6 +368,33 @@ function updateRestaurantCount(count) {
     if (countElement) {
         countElement.textContent = `${count}件`;
     }
+}
+
+// レストラン画像を取得（ダミー画像またはスプレッドシートから）
+function getRestaurantImage(restaurant) {
+    // スプレッドシートに写真がある場合は後で使用
+    if (restaurant.photo && restaurant.photo.includes('drive.google.com')) {
+        // Google Drive画像のダイレクトリンクに変換（後で実装）
+        return convertGoogleDriveUrl(restaurant.photo);
+    }
+    
+    // ジャンル別のダミー画像を返す
+    const genreImages = {
+        '定食類': 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200&h=200&fit=crop&crop=center',
+        '定食': 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200&h=200&fit=crop&crop=center',
+        '麺類': 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200&h=200&fit=crop&crop=center',
+        'スイーツ': 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200&h=200&fit=crop&crop=center',
+        'テイクアウト': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=200&h=200&fit=crop&crop=center'
+    };
+    
+    return genreImages[restaurant.genre] || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center';
+}
+
+// Google Drive URLをダイレクトリンクに変換（将来の実装用）
+function convertGoogleDriveUrl(url) {
+    // 現在はダミー画像を返す
+    // 後でGoogle Drive画像の処理を追加予定
+    return 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center';
 }
 
 // レストランクリック処理（レスポンシブ対応）
