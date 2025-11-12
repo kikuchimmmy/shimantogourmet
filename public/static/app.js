@@ -393,7 +393,7 @@ function getRestaurantImage(restaurant) {
     return genreImages[restaurant.genre] || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center';
 }
 
-// Google Drive URLをダイレクトリンクに変換
+// Google Drive URLをプロキシ経由のURLに変換（CORS回避）
 function convertGoogleDriveUrl(url) {
     try {
         // Google Drive URL形式: https://drive.google.com/file/d/FILE_ID/view?usp=...
@@ -414,9 +414,8 @@ function convertGoogleDriveUrl(url) {
         }
         
         if (fileId) {
-            // Google Driveの公開画像URL（CORSフリー）
-            // ucエンドポイントを使用（公開設定の画像用）
-            return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            // バックエンドのプロキシ経由で画像を取得（CORS回避）
+            return `/api/image-proxy?id=${fileId}`;
         }
         
         console.warn('Google Drive URLの解析に失敗:', url);

@@ -279,4 +279,42 @@ app.post('/api/geocode', async (c) => {
   }
 })
 
+// API: Google Drive画像プロキシ（CORS回避用）
+app.get('/api/image-proxy', async (c) => {
+  const fileId = c.req.query('id');
+  
+  if (!fileId) {
+    return c.json({ error: 'File ID is required' }, 400);
+  }
+  
+  try {
+    // Google Driveから画像を取得
+    const driveUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+    const response = await fetch(driveUrl, {
+      redirect: 'follow'
+    });
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch image: ${response.status}`);
+      return c.json({ error: 'Failed to fetch image' }, response.status);
+    }
+    
+    // 画像データを取得
+    const imageData = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    
+    // CORS対応ヘッダーとキャッシュヘッダーを付けて返す
+    return new Response(imageData, {
+      headers: {
+        'Content-Type': contentType,
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=86400', // 24時間キャッシュ
+      }
+    });
+  } catch (error) {
+    console.error('Image proxy error:', error);
+    return c.json({ error: 'Image proxy request failed' }, 500);
+  }
+})
+
 export default app
