@@ -118,7 +118,7 @@ function displayRestaurants(restaurantList) {
         
         return `
             <div class="restaurant-card" data-id="${restaurant.id}" onclick="handleRestaurantClick(${restaurant.id})">
-                <img src="${imageUrl}" alt="${restaurant.name}" class="restaurant-image" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center'">
+                <img src="${imageUrl}" alt="${restaurant.name}" class="restaurant-image" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center';" crossorigin="anonymous">
                 <div class="restaurant-content">
                     <div class="restaurant-name">${restaurant.name}</div>
                 <span class="restaurant-genre">${restaurant.genre}</span>
@@ -393,11 +393,39 @@ function getRestaurantImage(restaurant) {
     return genreImages[restaurant.genre] || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center';
 }
 
-// Google Drive URLをダイレクトリンクに変換（将来の実装用）
+// Google Drive URLをダイレクトリンクに変換
 function convertGoogleDriveUrl(url) {
-    // 現在はダミー画像を返す
-    // 後でGoogle Drive画像の処理を追加予定
-    return 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center';
+    try {
+        // Google Drive URL形式: https://drive.google.com/file/d/FILE_ID/view?usp=...
+        // または: https://drive.google.com/open?id=FILE_ID
+        
+        let fileId = null;
+        
+        // /file/d/FILE_ID/view 形式
+        const match1 = url.match(/\/file\/d\/([^\/]+)/);
+        if (match1) {
+            fileId = match1[1];
+        }
+        
+        // ?id=FILE_ID 形式
+        const match2 = url.match(/[?&]id=([^&]+)/);
+        if (match2) {
+            fileId = match2[1];
+        }
+        
+        if (fileId) {
+            // Google Driveの公開画像URL（CORSフリー）
+            // ucエンドポイントを使用（公開設定の画像用）
+            return `https://drive.google.com/uc?export=view&id=${fileId}`;
+        }
+        
+        console.warn('Google Drive URLの解析に失敗:', url);
+        return 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center';
+        
+    } catch (error) {
+        console.error('Google Drive URL変換エラー:', error);
+        return 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&crop=center';
+    }
 }
 
 // レストランクリック処理（レスポンシブ対応）
