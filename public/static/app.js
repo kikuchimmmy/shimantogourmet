@@ -35,11 +35,15 @@ async function loadData() {
         
         console.log(`読み込み完了: レストラン${restaurants.length}件, 写真スポット${photoSpots.length}件`);
         
-        // ジオコーディングが必要なレストランを処理
+        // ジオコーディングが必要なレストランとスポットを処理
         await geocodeRestaurants();
+        await geocodeSpots();
         
         // レストランリスト表示
         displayRestaurants(restaurants);
+        
+        // ジャンルフィルターにスポットカテゴリを追加
+        updateGenreFilters();
         
     } catch (error) {
         console.error('データ読み込みエラー:', error);
@@ -89,14 +93,28 @@ function filterRestaurants(genre) {
     let filteredRestaurants;
     if (genre === 'all') {
         filteredRestaurants = restaurants;
+        
+        // 「すべて」の場合は地図上にスポットも表示
+        if (map) {
+            markers.forEach(m => m.setMap(null));
+            markers = [];
+            addMarkersToMap(restaurants);
+            addSpotsToMap(photoSpots);
+        }
     } else {
         filteredRestaurants = restaurants.filter(restaurant => 
             restaurant.genre === genre
         );
+        
+        // 特定ジャンルの場合はレストランマーカーのみ
+        if (map) {
+            markers.forEach(m => m.setMap(null));
+            markers = [];
+            addMarkersToMap(filteredRestaurants);
+        }
     }
     
     displayRestaurants(filteredRestaurants);
-    updateMapMarkers(filteredRestaurants);
     updateRestaurantCount(filteredRestaurants.length);
 }
 
@@ -209,8 +227,11 @@ function initMap() {
         ]
     });
     
-    // マーカー追加
+    // レストランマーカー追加
     addMarkersToMap(restaurants);
+    
+    // スポットマーカー追加（別の色）
+    addSpotsToMap(photoSpots);
 }
 
 // マップにマーカー追加
@@ -248,6 +269,59 @@ function addMarkersToMap(restaurantList) {
                     <div style="font-size: 13px; line-height: 1.4; margin-bottom: 8px;">"${restaurant.review}"</div>
                     <div style="color: #666; font-size: 12px;">
                         <i class="fas fa-phone"></i> ${restaurant.phone}
+                    </div>
+                </div>
+            `
+        });
+        
+        marker.addListener('click', () => {
+            infoWindow.open(map, marker);
+        });
+        
+        markers.push(marker);
+    });
+}
+
+// スポットマーカーを地図に追加（別の色）
+function addSpotsToMap(spotList) {
+    // 既存のスポットマーカーを削除
+    markers.filter(m => m.spotMarker).forEach(m => m.setMap(null));
+    
+    spotList.forEach(spot => {
+        if (!spot.lat || !spot.lng) {
+            console.log('スポットの座標がありません:', spot.name);
+            return;
+        }
+        
+        const marker = new google.maps.Marker({
+            position: { lat: spot.lat, lng: spot.lng },
+            map: map,
+            title: spot.name,
+            spotMarker: true, // スポットマーカーのフラグ
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: '#f59e0b', // オレンジ色（スポット用）
+                fillOpacity: 0.9,
+                strokeWeight: 2,
+                strokeColor: '#ffffff'
+            }
+        });
+        
+        // 情報ウィンドウ
+        const photoHtml = spot.photo ? 
+            `<img src="${getSpotImage(spot)}" alt="${spot.name}" style="width: 100%; max-width: 200px; height: 120px; object-fit: cover; border-radius: 4px; margin-bottom: 8px;" onerror="this.style.display='none';" crossorigin="anonymous">` : '';
+        
+        const infoWindow = new google.maps.InfoWindow({
+            content: `
+                <div style="max-width: 250px;">
+                    ${photoHtml}
+                    <h4 style="margin: 0 0 8px 0; color: #333;">📸 ${spot.name}</h4>
+                    <div style="color: #666; font-size: 12px; margin-bottom: 4px;">${spot.category || 'おすすめスポット'}</div>
+                    ${spot.timeOfDay ? `<div style="color: #f59e0b; font-size: 12px; margin-bottom: 8px;">🕐 ${spot.timeOfDay}</div>` : ''}
+                    <div style="font-size: 13px; line-height: 1.4; margin-bottom: 8px;">${spot.description}</div>
+                    <div style="color: #666; font-size: 11px;">
+                        <i class="fas fa-map-marker-alt"></i> ${spot.address}
                     </div>
                 </div>
             `
@@ -427,6 +501,133 @@ function convertGoogleDriveUrl(url) {
     }
 }
 
+// スポット画像取得
+function getSpotImage(spot) {
+    if (spot.photo && spot.photo.includes('drive.google.com')) {
+        return convertGoogleDriveUrl(spot.photo);
+    }
+    
+    // カテゴリ別のダミー画像
+    const categoryImages = {
+        '橋': 'https://images.unsplash.com/photo-1533577116850-9af94d292f1d?w=200&h=200&fit=crop',
+        '建物': 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=200&h=200&fit=crop',
+        'イルミネーション': 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=200&h=200&fit=crop',
+        '商店街': 'https://images.unsplash.com/photo-1555636222-cae831e670b3?w=200&h=200&fit=crop',
+        '道': 'https://images.unsplash.com/photo-1502224562085-639556652f33?w=200&h=200&fit=crop'
+    };
+    
+    return categoryImages[spot.category] || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop';
+}
+
+// ジャンルフィルターを更新（スポットカテゴリを追加）
+function updateGenreFilters() {
+    const filterContainer = document.getElementById('genre-filters');
+    if (!filterContainer) return;
+    
+    // スポットカテゴリを集計
+    const spotCategories = [...new Set(photoSpots.map(s => s.category).filter(c => c))];
+    
+    // 既存のボタンに加えて、スポットカテゴリボタンを追加
+    if (spotCategories.length > 0) {
+        spotCategories.forEach(category => {
+            const button = document.createElement('button');
+            button.className = 'filter-btn';
+            button.dataset.genre = `spot:${category}`;
+            button.textContent = `📸 ${category}`;
+            button.addEventListener('click', function() {
+                // アクティブボタン切り替え
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // スポットフィルタリング実行
+                filterBySpotCategory(category);
+            });
+            filterContainer.appendChild(button);
+        });
+    }
+}
+
+// スポットカテゴリでフィルタリング
+function filterBySpotCategory(category) {
+    const filteredSpots = photoSpots.filter(spot => spot.category === category);
+    
+    // 地図上のマーカーを更新
+    if (map) {
+        // 全マーカーを削除
+        markers.forEach(m => m.setMap(null));
+        markers = [];
+        
+        // フィルタリングされたスポットマーカーのみ表示
+        addSpotsToMap(filteredSpots);
+    }
+    
+    // リスト表示を更新
+    displaySpots(filteredSpots);
+    updateRestaurantCount(filteredSpots.length);
+}
+
+// スポット一覧表示
+function displaySpots(spotList) {
+    const listElement = document.getElementById('restaurant-list');
+    
+    if (spotList.length === 0) {
+        listElement.innerHTML = '<div class="loading">該当するスポットがありません</div>';
+        return;
+    }
+    
+    const html = spotList.map(spot => {
+        const imageUrl = getSpotImage(spot);
+        
+        return `
+            <div class="restaurant-card" onclick="handleSpotClick(${spot.id})">
+                <img src="${imageUrl}" alt="${spot.name}" class="restaurant-image" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop';" crossorigin="anonymous">
+                <div class="restaurant-content">
+                    <h3 class="restaurant-name">📸 ${spot.name}</h3>
+                    <div class="restaurant-genre">${spot.category || 'おすすめスポット'}</div>
+                    ${spot.timeOfDay ? `<div class="restaurant-price">🕐 ${spot.timeOfDay}</div>` : ''}
+                    <div class="restaurant-review">${spot.description}</div>
+                    <div class="restaurant-info">
+                        <span><i class="fas fa-map-marker-alt"></i> 地図で見る</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    listElement.innerHTML = html;
+}
+
+// スポットクリック処理
+function handleSpotClick(spotId) {
+    const spot = photoSpots.find(s => s.id === spotId);
+    if (!spot || !spot.lat || !spot.lng || !map) return;
+    
+    // モバイルの場合は地図タブに切り替え
+    if (window.innerWidth < 768) {
+        switchToTab('map');
+        setTimeout(() => {
+            showSpotOnMap(spotId);
+        }, 300);
+    } else {
+        // デスクトップの場合は直接地図に表示
+        showSpotOnMap(spotId);
+    }
+}
+
+// スポットを地図で表示
+function showSpotOnMap(spotId) {
+    const spot = photoSpots.find(s => s.id === spotId);
+    if (!spot || !spot.lat || !spot.lng || !map) return;
+    
+    map.setCenter({ lat: spot.lat, lng: spot.lng });
+    map.setZoom(16);
+    
+    const marker = markers.find(m => m.getTitle() === spot.name);
+    if (marker) {
+        google.maps.event.trigger(marker, 'click');
+    }
+}
+
 // レストランクリック処理（レスポンシブ対応）
 function handleRestaurantClick(restaurantId) {
     // モバイルの場合は地図タブに切り替え
@@ -477,6 +678,43 @@ async function geocodeRestaurants() {
     }
     
     console.log('ジオコーディング完了');
+}
+
+// スポット用ジオコーディング
+async function geocodeSpots() {
+    const needsGeocodingList = photoSpots.filter(s => s.needsGeocoding);
+    
+    if (needsGeocodingList.length === 0) {
+        console.log('ジオコーディング不要: すべてのスポットに座標があります');
+        return;
+    }
+    
+    console.log(`スポットジオコーディング開始: ${needsGeocodingList.length}件`);
+    
+    for (const spot of needsGeocodingList) {
+        try {
+            console.log(`ジオコーディング中: ${spot.name} (${spot.address})`);
+            
+            const response = await axios.post('/api/geocode', {
+                address: spot.address
+            });
+            
+            if (response.data.lat && response.data.lng) {
+                spot.lat = response.data.lat;
+                spot.lng = response.data.lng;
+                spot.needsGeocoding = false;
+                console.log(`✓ ${spot.name}: ${spot.lat}, ${spot.lng}`);
+            }
+            
+            // APIレート制限対策：少し待機
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+        } catch (error) {
+            console.error(`ジオコーディング失敗: ${spot.name}`, error);
+        }
+    }
+    
+    console.log('スポットジオコーディング完了');
 }
 
 // Google Maps APIコールバック（グローバル関数として定義）

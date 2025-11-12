@@ -62,6 +62,69 @@ function parseRestaurantCSV(csvText: string) {
   return restaurants;
 }
 
+// おすすめスポット用CSVパーサー関数
+function parseSpotCSV(csvText: string) {
+  const lines = csvText.split('\n');
+  const spots = [];
+  
+  // ヘッダーをスキップしてデータ行を処理
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    // CSVパーシング（カンマ区切り、ダブルクォート対応）
+    const columns = parseCSVLine(line);
+    
+    // 列構成: ,スポット名,住所,緯度・経度,説明,写真,時間帯,カテゴリ
+    if (columns.length >= 2 && columns[1]) { // スポット名がある場合のみ
+      const coordinatesStr = columns[3]?.trim() || '';
+      const address = columns[2]?.trim() || '';
+      let lat = 33.2180; // デフォルト（四万十町中心部）
+      let lng = 132.9360;
+      let needsGeocoding = false;
+      
+      if (coordinatesStr) {
+        // "33.2180, 132.9360" または URL形式をパース
+        if (coordinatesStr.includes('http')) {
+          // URLの場合はジオコーディングが必要
+          needsGeocoding = true;
+        } else {
+          const coords = coordinatesStr.split(',').map(s => s.trim());
+          if (coords.length === 2) {
+            const parsedLat = parseFloat(coords[0]);
+            const parsedLng = parseFloat(coords[1]);
+            if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+              lat = parsedLat;
+              lng = parsedLng;
+            }
+          }
+        }
+      } else if (address) {
+        // 住所がある場合は、ジオコーディングが必要
+        needsGeocoding = true;
+      }
+      
+      const spot = {
+        id: parseInt(columns[0]) || spots.length + 1,
+        name: columns[1].trim(),
+        address: address || '四万十町',
+        coordinates: coordinatesStr,
+        description: columns[4]?.trim() || '',
+        photo: columns[5]?.trim() || '',
+        timeOfDay: columns[6]?.trim() || '',
+        category: columns[7]?.trim() || '',
+        lat: lat,
+        lng: lng,
+        needsGeocoding: needsGeocoding,
+        type: 'spot' // レストランと区別するためのフラグ
+      };
+      spots.push(spot);
+    }
+  }
+  
+  return spots;
+}
+
 // CSV行パーサー（カンマとダブルクォート対応）
 function parseCSVLine(line: string): string[] {
   const result = [];
@@ -229,10 +292,42 @@ app.get('/api/restaurants', async (c) => {
 
 // API: 写真スポットデータ取得
 app.get('/api/photo-spots', async (c) => {
-  // TODO: 写真スポット用スプレッドシートからデータを取得
-  const mockData = []
-  
-  return c.json({ spots: mockData })
+  try {
+    console.log('Fetching photo spots data from Google Sheets...');
+    
+    // Google Sheets CSV URL - おすすめスポットタブ
+    const sheetId = '1itlpjo95O019S1EZYI3k9dJ0prRivYd9drMH8icTpAI';
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?exportFormat=csv&gid=1446929807`;
+    
+    console.log('CSV URL:', csvUrl);
+    
+    const response = await fetch(csvUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const csvText = await response.text();
+    console.log('CSV response (first 500 chars):', csvText.substring(0, 500));
+    
+    if (csvText.includes('<HTML>')) {
+      throw new Error('Received HTML instead of CSV - access denied');
+    }
+    
+    const spots = parseSpotCSV(csvText);
+    console.log('Parsed spots:', spots.length, 'items');
+    console.log('Sample spot:', spots[0]);
+    
+    console.log(`Loaded ${spots.length} spots`);
+    return c.json({ spots });
+    
+  } catch (error) {
+    console.error('Error fetching photo spots data:', error);
+    
+    // フォールバックデータ
+    const fallbackData = [];
+    
+    return c.json({ spots: fallbackData });
+  }
 })
 
 // API: Google Maps APIキー取得
