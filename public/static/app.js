@@ -35,6 +35,9 @@ async function loadData() {
         
         console.log(`読み込み完了: レストラン${restaurants.length}件, 写真スポット${photoSpots.length}件`);
         
+        // ジオコーディングが必要なレストランを処理
+        await geocodeRestaurants();
+        
         // レストランリスト表示
         displayRestaurants(restaurants);
         
@@ -409,6 +412,44 @@ function handleRestaurantClick(restaurantId) {
         // デスクトップの場合は直接地図に表示
         showRestaurantOnMap(restaurantId);
     }
+}
+
+// 住所から緯度経度を自動取得（ジオコーディング）
+async function geocodeRestaurants() {
+    const needsGeocodingList = restaurants.filter(r => r.needsGeocoding);
+    
+    if (needsGeocodingList.length === 0) {
+        console.log('ジオコーディング不要: すべてのレストランに座標があります');
+        return;
+    }
+    
+    console.log(`ジオコーディング開始: ${needsGeocodingList.length}件のレストラン`);
+    
+    for (const restaurant of needsGeocodingList) {
+        try {
+            console.log(`ジオコーディング中: ${restaurant.name} (${restaurant.address})`);
+            
+            const response = await axios.post('/api/geocode', {
+                address: restaurant.address
+            });
+            
+            if (response.data.lat && response.data.lng) {
+                restaurant.lat = response.data.lat;
+                restaurant.lng = response.data.lng;
+                restaurant.needsGeocoding = false;
+                console.log(`✓ ${restaurant.name}: ${restaurant.lat}, ${restaurant.lng}`);
+            }
+            
+            // APIレート制限対策：少し待機
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+        } catch (error) {
+            console.error(`ジオコーディング失敗: ${restaurant.name}`, error);
+            // エラーの場合はデフォルト座標のまま
+        }
+    }
+    
+    console.log('ジオコーディング完了');
 }
 
 // Google Maps APIコールバック（グローバル関数として定義）

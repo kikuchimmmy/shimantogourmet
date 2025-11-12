@@ -17,20 +17,43 @@ function parseRestaurantCSV(csvText: string) {
     const columns = parseCSVLine(line);
     
     if (columns.length >= 8 && columns[1] && columns[2]) { // ジャンルと名前がある場合のみ
+      // E列の緯度・経度をパース
+      const coordinatesStr = columns[4]?.trim() || '';
+      const address = columns[3]?.trim() || '';
+      let lat = 33.2180; // デフォルト（四万十町中心部）
+      let lng = 132.9360;
+      let needsGeocoding = false;
+      
+      if (coordinatesStr) {
+        // "33.2180, 132.9360" または "33.2180,132.9360" 形式をパース
+        const coords = coordinatesStr.split(',').map(s => s.trim());
+        if (coords.length === 2) {
+          const parsedLat = parseFloat(coords[0]);
+          const parsedLng = parseFloat(coords[1]);
+          if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+            lat = parsedLat;
+            lng = parsedLng;
+          }
+        }
+      } else if (address && address !== '四万十町') {
+        // E列が空で住所がある場合は、ジオコーディングが必要
+        needsGeocoding = true;
+      }
+      
       const restaurant = {
         id: parseInt(columns[0]) || restaurants.length + 1,
         genre: columns[1].trim(),
         name: columns[2].trim(),
-        address: columns[3]?.trim() || '四万十町',
-        coordinates: columns[4]?.trim() || '',
+        address: address || '四万十町',
+        coordinates: coordinatesStr,
         phone: columns[5]?.trim() || '',
         price: columns[6]?.trim() || '',
         review: columns[7]?.trim() || '',
         photo: columns[8]?.trim() || '',
         photoApp: columns[9]?.trim() || '',
-        // 座標は住所が追加されたらジオコーディングで取得予定
-        lat: 33.2180 + (Math.random() - 0.5) * 0.01, // 仮の座標（四万十町中心部周辺）
-        lng: 132.9360 + (Math.random() - 0.5) * 0.01
+        lat: lat,
+        lng: lng,
+        needsGeocoding: needsGeocoding
       };
       restaurants.push(restaurant);
     }
@@ -219,6 +242,41 @@ app.get('/api/config', async (c) => {
   return c.json({
     googleMapsApiKey: env.GOOGLE_MAPS_API_KEY || 'YOUR_API_KEY_HERE'
   });
+})
+
+// API: 住所から緯度経度を取得（ジオコーディング）
+app.post('/api/geocode', async (c) => {
+  const { env } = c;
+  const { address } = await c.req.json();
+  
+  if (!address) {
+    return c.json({ error: 'Address is required' }, 400);
+  }
+  
+  const apiKey = env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+    return c.json({ error: 'API key not configured' }, 500);
+  }
+  
+  try {
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&language=ja&region=JP`;
+    const response = await fetch(geocodeUrl);
+    const data = await response.json();
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const location = data.results[0].geometry.location;
+      return c.json({
+        lat: location.lat,
+        lng: location.lng,
+        formatted_address: data.results[0].formatted_address
+      });
+    } else {
+      return c.json({ error: 'Geocoding failed', status: data.status }, 404);
+    }
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return c.json({ error: 'Geocoding request failed' }, 500);
+  }
 })
 
 export default app
