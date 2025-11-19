@@ -5,14 +5,15 @@
 - **目的**: 汽車で訪れる観光客向けの地元高校生おすすめ飲食店ガイド
 - **主な機能**: 
   - お店一覧表示（ジャンル別フィルタリング）
-  - 地図表示（Google Maps連携）
+  - 地図表示（Google Maps連携、ズームレベル16）
   - 写真スポット情報
   - Google Sheetsからのデータ取得
   - レスポンシブデザイン（スマホ・タブレット対応）
+  - 高速データ読み込み（並列処理・バックグラウンドジオコーディング）
 
 ## URLs
 - **本番環境**: https://shimanto-restaurant-guide.pages.dev
-- **最新デプロイ**: https://11a206a5.shimanto-restaurant-guide.pages.dev
+- **最新デプロイ**: https://949ee730.shimanto-restaurant-guide.pages.dev
 - **GitHub**: https://github.com/kikuchimmmy/shimantogourmet
 
 ## データアーキテクチャ
