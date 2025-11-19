@@ -214,7 +214,7 @@ function initMap() {
     console.log('Google Maps初期化');
     
     // 窪川駅中心
-    const center = { lat: 33.0994, lng: 133.2997 };
+    const center = { lat: 33.0994, lng: 132.9360 };
     
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 14,
