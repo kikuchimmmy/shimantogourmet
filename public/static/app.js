@@ -102,6 +102,12 @@ function setupEventListeners() {
 function filterRestaurants(genre) {
     console.log('フィルタリング:', genre);
     
+    // おすすめスポットの場合は専用関数を呼ぶ
+    if (genre === 'spots') {
+        showAllSpots();
+        return;
+    }
+    
     let filteredRestaurants;
     if (genre === 'all') {
         filteredRestaurants = restaurants;
@@ -535,6 +541,10 @@ function getSpotImage(spot) {
 function updateGenreFilters() {
     const filterContainer = document.getElementById('genre-filters');
     if (!filterContainer) return;
+    
+    // 既にスポットボタンがある場合は追加しない
+    const existingSpotButton = filterContainer.querySelector('[data-genre="spots"]');
+    if (existingSpotButton) return;
     
     // スポットが1件以上ある場合、「おすすめスポット」ボタンを追加
     if (photoSpots.length > 0) {
