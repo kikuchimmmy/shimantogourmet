@@ -25,25 +25,37 @@ async function loadData() {
     try {
         console.log('データ読み込み開始...');
         
-        // レストランデータ取得
-        const restaurantResponse = await axios.get('/api/restaurants');
-        restaurants = restaurantResponse.data.restaurants || [];
+        // レストランデータと写真スポットデータを並列で取得
+        const [restaurantResponse, spotResponse] = await Promise.all([
+            axios.get('/api/restaurants'),
+            axios.get('/api/photo-spots')
+        ]);
         
-        // 写真スポットデータ取得
-        const spotResponse = await axios.get('/api/photo-spots');
+        restaurants = restaurantResponse.data.restaurants || [];
         photoSpots = spotResponse.data.spots || [];
         
         console.log(`読み込み完了: レストラン${restaurants.length}件, 写真スポット${photoSpots.length}件`);
         
-        // ジオコーディングが必要なレストランとスポットを処理
-        await geocodeRestaurants();
-        await geocodeSpots();
-        
-        // レストランリスト表示
+        // レストランリストを即座に表示（ジオコーディング前）
         displayRestaurants(restaurants);
         
         // ジャンルフィルターにスポットカテゴリを追加
         updateGenreFilters();
+        
+        // ジオコーディングはバックグラウンドで非同期実行
+        Promise.all([
+            geocodeRestaurants(),
+            geocodeSpots()
+        ]).then(() => {
+            console.log('ジオコーディング完了 - 地図を更新');
+            // ジオコーディング完了後、地図があれば更新
+            if (map) {
+                markers.forEach(m => m.setMap(null));
+                markers = [];
+                addMarkersToMap(restaurants);
+                addSpotsToMap(photoSpots);
+            }
+        });
         
     } catch (error) {
         console.error('データ読み込みエラー:', error);
@@ -217,7 +229,7 @@ function initMap() {
     const center = { lat: 33.212317, lng: 133.1346126 };
     
     map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 14,
+        zoom: 16,
         center: center,
         styles: [
             {
@@ -646,27 +658,34 @@ async function geocodeRestaurants() {
     
     console.log(`ジオコーディング開始: ${needsGeocodingList.length}件のレストラン`);
     
-    for (const restaurant of needsGeocodingList) {
-        try {
-            console.log(`ジオコーディング中: ${restaurant.name} (${restaurant.address})`);
-            
-            const response = await axios.post('/api/geocode', {
-                address: restaurant.address
-            });
-            
-            if (response.data.lat && response.data.lng) {
-                restaurant.lat = response.data.lat;
-                restaurant.lng = response.data.lng;
-                restaurant.needsGeocoding = false;
-                console.log(`✓ ${restaurant.name}: ${restaurant.lat}, ${restaurant.lng}`);
+    // 並列処理でジオコーディング（5件ずつバッチ処理）
+    const batchSize = 5;
+    for (let i = 0; i < needsGeocodingList.length; i += batchSize) {
+        const batch = needsGeocodingList.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (restaurant) => {
+            try {
+                console.log(`ジオコーディング中: ${restaurant.name} (${restaurant.address})`);
+                
+                const response = await axios.post('/api/geocode', {
+                    address: restaurant.address
+                });
+                
+                if (response.data.lat && response.data.lng) {
+                    restaurant.lat = response.data.lat;
+                    restaurant.lng = response.data.lng;
+                    restaurant.needsGeocoding = false;
+                    console.log(`✓ ${restaurant.name}: ${restaurant.lat}, ${restaurant.lng}`);
+                }
+            } catch (error) {
+                console.error(`ジオコーディング失敗: ${restaurant.name}`, error);
+                // エラーの場合はデフォルト座標のまま
             }
-            
-            // APIレート制限対策：少し待機
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-        } catch (error) {
-            console.error(`ジオコーディング失敗: ${restaurant.name}`, error);
-            // エラーの場合はデフォルト座標のまま
+        }));
+        
+        // バッチ間の短い待機（APIレート制限対策）
+        if (i + batchSize < needsGeocodingList.length) {
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
     
@@ -684,26 +703,33 @@ async function geocodeSpots() {
     
     console.log(`スポットジオコーディング開始: ${needsGeocodingList.length}件`);
     
-    for (const spot of needsGeocodingList) {
-        try {
-            console.log(`ジオコーディング中: ${spot.name} (${spot.address})`);
-            
-            const response = await axios.post('/api/geocode', {
-                address: spot.address
-            });
-            
-            if (response.data.lat && response.data.lng) {
-                spot.lat = response.data.lat;
-                spot.lng = response.data.lng;
-                spot.needsGeocoding = false;
-                console.log(`✓ ${spot.name}: ${spot.lat}, ${spot.lng}`);
+    // 並列処理でジオコーディング（5件ずつバッチ処理）
+    const batchSize = 5;
+    for (let i = 0; i < needsGeocodingList.length; i += batchSize) {
+        const batch = needsGeocodingList.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (spot) => {
+            try {
+                console.log(`ジオコーディング中: ${spot.name} (${spot.address})`);
+                
+                const response = await axios.post('/api/geocode', {
+                    address: spot.address
+                });
+                
+                if (response.data.lat && response.data.lng) {
+                    spot.lat = response.data.lat;
+                    spot.lng = response.data.lng;
+                    spot.needsGeocoding = false;
+                    console.log(`✓ ${spot.name}: ${spot.lat}, ${spot.lng}`);
+                }
+            } catch (error) {
+                console.error(`ジオコーディング失敗: ${spot.name}`, error);
             }
-            
-            // APIレート制限対策：少し待機
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-        } catch (error) {
-            console.error(`ジオコーディング失敗: ${spot.name}`, error);
+        }));
+        
+        // バッチ間の短い待機（APIレート制限対策）
+        if (i + batchSize < needsGeocodingList.length) {
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
     
