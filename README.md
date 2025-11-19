@@ -13,7 +13,7 @@
 
 ## URLs
 - **本番環境**: https://shimanto-restaurant-guide.pages.dev
-- **最新デプロイ**: https://949ee730.shimanto-restaurant-guide.pages.dev
+- **最新デプロイ**: https://2f2ba1cd.shimanto-restaurant-guide.pages.dev
 - **GitHub**: https://github.com/kikuchimmmy/shimantogourmet
 
 ## データアーキテクチャ
@@ -78,11 +78,12 @@ webapp/
 ## 実装済み機能
 - ✅ Google Sheetsからのお店データ取得
 - ✅ Google Sheetsからの写真スポットデータ取得
-- ✅ ジャンル別フィルタリング
-- ✅ Google Maps地図表示
+- ✅ ジャンル別フィルタリング（お店＋おすすめスポット）
+- ✅ おすすめスポット一覧表示・クリックで地図表示
+- ✅ Google Maps地図表示（ズームレベル16）
 - ✅ レスポンシブデザイン（スマホ・タブレット対応）
 - ✅ Google Drive画像プロキシ（CORS回避）
-- ✅ ジオコーディングAPI
+- ✅ ジオコーディングAPI（並列処理・高速化）
 
 ## 未実装機能
 - ⬜ お店の詳細情報モーダル
