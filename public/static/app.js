@@ -519,51 +519,44 @@ function getSpotImage(spot) {
     return categoryImages[spot.category] || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop';
 }
 
-// ジャンルフィルターを更新（スポットカテゴリを追加）
+// ジャンルフィルターを更新（おすすめスポットボタンを追加）
 function updateGenreFilters() {
     const filterContainer = document.getElementById('genre-filters');
     if (!filterContainer) return;
     
-    // スポットカテゴリを集計
-    const spotCategories = [...new Set(photoSpots.map(s => s.category).filter(c => c))];
-    
-    // 既存のボタンに加えて、スポットカテゴリボタンを追加
-    if (spotCategories.length > 0) {
-        spotCategories.forEach(category => {
-            const button = document.createElement('button');
-            button.className = 'filter-btn';
-            button.dataset.genre = `spot:${category}`;
-            button.textContent = `📸 ${category}`;
-            button.addEventListener('click', function() {
-                // アクティブボタン切り替え
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-                
-                // スポットフィルタリング実行
-                filterBySpotCategory(category);
-            });
-            filterContainer.appendChild(button);
+    // スポットが1件以上ある場合、「おすすめスポット」ボタンを追加
+    if (photoSpots.length > 0) {
+        const button = document.createElement('button');
+        button.className = 'filter-btn';
+        button.dataset.genre = 'spots';
+        button.textContent = '📸 おすすめスポット';
+        button.addEventListener('click', function() {
+            // アクティブボタン切り替え
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // スポット一覧を表示
+            showAllSpots();
         });
+        filterContainer.appendChild(button);
     }
 }
 
-// スポットカテゴリでフィルタリング
-function filterBySpotCategory(category) {
-    const filteredSpots = photoSpots.filter(spot => spot.category === category);
-    
+// すべてのスポットを表示
+function showAllSpots() {
     // 地図上のマーカーを更新
     if (map) {
         // 全マーカーを削除
         markers.forEach(m => m.setMap(null));
         markers = [];
         
-        // フィルタリングされたスポットマーカーのみ表示
-        addSpotsToMap(filteredSpots);
+        // すべてのスポットマーカーを表示
+        addSpotsToMap(photoSpots);
     }
     
     // リスト表示を更新
-    displaySpots(filteredSpots);
-    updateRestaurantCount(filteredSpots.length);
+    displaySpots(photoSpots);
+    updateRestaurantCount(photoSpots.length);
 }
 
 // スポット一覧表示
