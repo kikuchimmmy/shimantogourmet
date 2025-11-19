@@ -739,3 +739,5 @@ async function geocodeSpots() {
 // Google Maps APIコールバック（グローバル関数として定義）
 window.initMap = initMap;
 window.switchToTab = switchToTab;
+window.handleSpotClick = handleSpotClick;
+window.handleRestaurantClick = handleRestaurantClick;
