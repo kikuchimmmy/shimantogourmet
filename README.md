@@ -13,7 +13,7 @@
 
 ## URLs
 - **本番環境**: https://shimanto-restaurant-guide.pages.dev
-- **最新デプロイ**: https://2f2ba1cd.shimanto-restaurant-guide.pages.dev
+- **最新デプロイ**: https://9262f495.shimanto-restaurant-guide.pages.dev
 - **GitHub**: https://github.com/kikuchimmmy/shimantogourmet
 
 ## データアーキテクチャ
