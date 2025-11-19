@@ -11,8 +11,8 @@
   - レスポンシブデザイン（スマホ・タブレット対応）
 
 ## URLs
-- **本番環境**: https://1510516a.shimanto-restaurant-guide.pages.dev
-- **開発サーバー**: https://3000-innswzemyzzds8tz7xy65-82b888ba.sandbox.novita.ai
+- **本番環境**: https://shimanto-restaurant-guide.pages.dev
+- **最新デプロイ**: https://11a206a5.shimanto-restaurant-guide.pages.dev
 - **GitHub**: https://github.com/kikuchimmmy/shimantogourmet
 
 ## データアーキテクチャ
@@ -100,4 +100,4 @@ webapp/
 - **プラットフォーム**: Cloudflare Pages
 - **ステータス**: ✅ 本番環境稼働中
 - **最終更新**: 2025-01-19
-- **地図初期位置**: 窪川駅中心 (緯度: 33.0994, 経度: 132.9360)
+- **地図初期位置**: 四万十町中心部 (緯度: 33.212317, 経度: 133.1346126)
