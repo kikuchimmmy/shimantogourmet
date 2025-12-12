@@ -232,7 +232,7 @@ function initMap() {
     console.log('Google Maps初期化');
     
     // 四万十町中心部
-    const center = { lat: 33.212317, lng: 133.1346126 };
+    const center = { lat: 33.2180, lng: 132.9360 };
     
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 16,
