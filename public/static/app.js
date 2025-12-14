@@ -5,6 +5,7 @@ let restaurants = [];
 let photoSpots = [];
 let map = null;
 let markers = [];
+let currentInfoWindow = null; // 現在開いている情報ウィンドウ
 
 // 初期化
 document.addEventListener('DOMContentLoaded', async function() {
@@ -293,7 +294,14 @@ function addMarkersToMap(restaurantList) {
         });
         
         marker.addListener('click', () => {
+            // 既に開いている情報ウィンドウを閉じる
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+            }
+            // 新しい情報ウィンドウを開く
             infoWindow.open(map, marker);
+            // 現在の情報ウィンドウを保存
+            currentInfoWindow = infoWindow;
         });
         
         markers.push(marker);
@@ -346,7 +354,14 @@ function addSpotsToMap(spotList) {
         });
         
         marker.addListener('click', () => {
+            // 既に開いている情報ウィンドウを閉じる
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+            }
+            // 新しい情報ウィンドウを開く
             infoWindow.open(map, marker);
+            // 現在の情報ウィンドウを保存
+            currentInfoWindow = infoWindow;
         });
         
         markers.push(marker);
