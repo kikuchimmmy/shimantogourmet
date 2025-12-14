@@ -467,11 +467,21 @@ function updateRestaurantCount(count) {
 
 // レストラン画像を取得（ダミー画像またはスプレッドシートから）
 function getRestaurantImage(restaurant) {
-    // スプレッドシートに写真がある場合は後で使用
-    if (restaurant.photo && restaurant.photo.includes('drive.google.com')) {
-        // Google Drive画像のダイレクトリンクに変換（後で実装）
-        return convertGoogleDriveUrl(restaurant.photo);
+    // スプレッドシートに写真がある場合
+    if (restaurant.photo && restaurant.photo.trim() !== '') {
+        console.log(`写真URL検出: ${restaurant.name} - ${restaurant.photo}`);
+        
+        if (restaurant.photo.includes('drive.google.com')) {
+            const proxyUrl = convertGoogleDriveUrl(restaurant.photo);
+            console.log(`Google Driveプロキシ使用: ${proxyUrl}`);
+            return proxyUrl;
+        }
+        
+        // Google Drive以外の直接URL
+        return restaurant.photo;
     }
+    
+    console.log(`ダミー画像使用: ${restaurant.name} (写真なし)`);
     
     // ジャンル別のダミー画像を返す
     const genreImages = {
@@ -488,26 +498,34 @@ function getRestaurantImage(restaurant) {
 // Google Drive URLをプロキシ経由のURLに変換（CORS回避）
 function convertGoogleDriveUrl(url) {
     try {
+        console.log('Google Drive URL変換開始:', url);
+        
         // Google Drive URL形式: https://drive.google.com/file/d/FILE_ID/view?usp=...
         // または: https://drive.google.com/open?id=FILE_ID
         
         let fileId = null;
         
         // /file/d/FILE_ID/view 形式
-        const match1 = url.match(/\/file\/d\/([^\/]+)/);
+        const match1 = url.match(/\/file\/d\/([^\/\?]+)/);
         if (match1) {
             fileId = match1[1];
+            console.log('File ID抽出成功 (形式1):', fileId);
         }
         
         // ?id=FILE_ID 形式
-        const match2 = url.match(/[?&]id=([^&]+)/);
-        if (match2) {
-            fileId = match2[1];
+        if (!fileId) {
+            const match2 = url.match(/[?&]id=([^&]+)/);
+            if (match2) {
+                fileId = match2[1];
+                console.log('File ID抽出成功 (形式2):', fileId);
+            }
         }
         
         if (fileId) {
             // バックエンドのプロキシ経由で画像を取得（CORS回避）
-            return `/api/image-proxy?id=${fileId}`;
+            const proxyUrl = `/api/image-proxy?id=${fileId}`;
+            console.log('プロキシURL生成:', proxyUrl);
+            return proxyUrl;
         }
         
         console.warn('Google Drive URLの解析に失敗:', url);
@@ -521,9 +539,21 @@ function convertGoogleDriveUrl(url) {
 
 // スポット画像取得
 function getSpotImage(spot) {
-    if (spot.photo && spot.photo.includes('drive.google.com')) {
-        return convertGoogleDriveUrl(spot.photo);
+    // スプレッドシートに写真がある場合
+    if (spot.photo && spot.photo.trim() !== '') {
+        console.log(`スポット写真URL検出: ${spot.name} - ${spot.photo}`);
+        
+        if (spot.photo.includes('drive.google.com')) {
+            const proxyUrl = convertGoogleDriveUrl(spot.photo);
+            console.log(`Google Driveプロキシ使用: ${proxyUrl}`);
+            return proxyUrl;
+        }
+        
+        // Google Drive以外の直接URL
+        return spot.photo;
     }
+    
+    console.log(`スポットダミー画像使用: ${spot.name} (写真なし)`);
     
     // カテゴリ別のダミー画像
     const categoryImages = {
