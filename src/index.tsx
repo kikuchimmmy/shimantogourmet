@@ -16,8 +16,8 @@ function parseRestaurantCSV(csvText: string) {
       // E列の緯度・経度をパース
       const coordinatesStr = columns[4]?.trim() || '';
       const address = columns[3]?.trim() || '';
-      let lat = 33.2180; // デフォルト（四万十町中心部）
-      let lng = 132.9360;
+      let lat = 33.21252695646221; // デフォルト（窪川駅）
+      let lng = 133.1372029480327;
       let needsGeocoding = false;
       
       if (coordinatesStr) {
@@ -71,8 +71,8 @@ function parseSpotCSV(csvText: string) {
     if (columns.length >= 2 && columns[1]) { // スポット名がある場合のみ
       const coordinatesStr = columns[3]?.trim() || '';
       const address = columns[2]?.trim() || '';
-      let lat = 33.2180; // デフォルト（四万十町中心部）
-      let lng = 132.9360;
+      let lat = 33.21252695646221; // デフォルト（窪川駅）
+      let lng = 133.1372029480327;
       let needsGeocoding = false;
       
       if (coordinatesStr) {

@@ -231,8 +231,8 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 function initMap() {
     console.log('Google Maps初期化');
     
-    // 四万十町中心部
-    const center = { lat: 33.2180, lng: 132.9360 };
+    // 窪川駅を中心に表示
+    const center = { lat: 33.21252695646221, lng: 133.1372029480327 };
     
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 16,
@@ -451,7 +451,7 @@ function switchToTab(tabName) {
         if (map) {
             setTimeout(() => {
                 google.maps.event.trigger(map, 'resize');
-                map.setCenter({ lat: 33.2180, lng: 132.9360 });
+                map.setCenter({ lat: 33.21252695646221, lng: 133.1372029480327 });
             }, 300);
         }
     }
