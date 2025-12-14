@@ -3,18 +3,14 @@ import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { renderer } from './renderer'
 
-// CSVパーサー関数
+// CSVパーサー関数（改行対応版）
 function parseRestaurantCSV(csvText: string) {
-  const lines = csvText.split('\n');
+  const rows = parseCSV(csvText);
   const restaurants = [];
   
-  // ヘッダーをスキップしてデータ行を処理
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    
-    // CSVパーシング（カンマ区切り、ダブルクォート対応）
-    const columns = parseCSVLine(line);
+  // ヘッダーをスキップしてデータ行を処理（rows[0]がヘッダー）
+  for (let i = 1; i < rows.length; i++) {
+    const columns = rows[i];
     
     if (columns.length >= 8 && columns[1] && columns[2]) { // ジャンルと名前がある場合のみ
       // E列の緯度・経度をパース
@@ -62,18 +58,14 @@ function parseRestaurantCSV(csvText: string) {
   return restaurants;
 }
 
-// おすすめスポット用CSVパーサー関数
+// おすすめスポット用CSVパーサー関数（改行対応版）
 function parseSpotCSV(csvText: string) {
-  const lines = csvText.split('\n');
+  const rows = parseCSV(csvText);
   const spots = [];
   
-  // ヘッダーをスキップしてデータ行を処理
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    
-    // CSVパーシング（カンマ区切り、ダブルクォート対応）
-    const columns = parseCSVLine(line);
+  // ヘッダーをスキップしてデータ行を処理（rows[0]がヘッダー）
+  for (let i = 1; i < rows.length; i++) {
+    const columns = rows[i];
     
     // 列構成: ,スポット名,住所,緯度・経度,説明,写真,時間帯,カテゴリ
     if (columns.length >= 2 && columns[1]) { // スポット名がある場合のみ
@@ -125,7 +117,60 @@ function parseSpotCSV(csvText: string) {
   return spots;
 }
 
-// CSV行パーサー（カンマとダブルクォート対応）
+// CSV全体パーサー（改行を含むフィールドに対応）
+function parseCSV(csvText: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // エスケープされたダブルクォート
+        currentField += '"';
+        i++; // 次の文字をスキップ
+      } else {
+        // クォートの開始/終了
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // フィールドの区切り
+      currentRow.push(currentField);
+      currentField = '';
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      // 行の終わり（クォート外の改行）
+      if (char === '\r' && nextChar === '\n') {
+        i++; // \r\nの場合は\nもスキップ
+      }
+      // 現在のフィールドと行を保存
+      currentRow.push(currentField);
+      if (currentRow.length > 0 && (currentRow.length > 1 || currentRow[0] !== '')) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentField = '';
+    } else {
+      // 通常の文字（改行もクォート内なら追加）
+      currentField += char;
+    }
+  }
+  
+  // 最後のフィールドと行を追加
+  if (currentField !== '' || currentRow.length > 0) {
+    currentRow.push(currentField);
+    if (currentRow.length > 0) {
+      rows.push(currentRow);
+    }
+  }
+  
+  return rows;
+}
+
+// CSV行パーサー（カンマとダブルクォート対応）- 互換性のため残す
 function parseCSVLine(line: string): string[] {
   const result = [];
   let current = '';
