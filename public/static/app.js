@@ -11,6 +11,12 @@ let currentInfoWindow = null; // 現在開いている情報ウィンドウ
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('四万十町グルメガイド - 初期化開始');
     
+    // アクセスカウント記録
+    recordPageView();
+    
+    // 訪問者数表示
+    loadAnalytics();
+    
     // データ読み込み
     await loadData();
     
@@ -789,6 +795,39 @@ async function geocodeSpots() {
     }
     
     console.log('スポットジオコーディング完了');
+}
+
+// アクセスカウント記録
+async function recordPageView() {
+    try {
+        await axios.post('/api/page-view', { 
+            page_path: window.location.pathname 
+        });
+        console.log('アクセスカウント記録完了');
+    } catch (error) {
+        console.warn('アクセスカウント記録失敗:', error);
+    }
+}
+
+// 訪問者数取得・表示
+async function loadAnalytics() {
+    try {
+        const response = await axios.get('/api/analytics');
+        const totalViews = response.data.total_views || 0;
+        
+        const viewsElement = document.getElementById('total-views');
+        if (viewsElement) {
+            viewsElement.textContent = totalViews.toLocaleString();
+        }
+        
+        console.log('訪問者数:', totalViews);
+    } catch (error) {
+        console.warn('訪問者数取得失敗:', error);
+        const viewsElement = document.getElementById('total-views');
+        if (viewsElement) {
+            viewsElement.textContent = '-';
+        }
+    }
 }
 
 // Google Maps APIコールバック（グローバル関数として定義）

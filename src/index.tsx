@@ -204,6 +204,7 @@ function parseCSVLine(line: string): string[] {
 
 type Bindings = {
   GOOGLE_MAPS_API_KEY: string;
+  ANALYTICS_DB: D1Database;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -227,6 +228,9 @@ app.get('/', (c) => {
           <p>地元高校生おすすめの飲食店 × 写真スポット</p>
           <div className="hero-subtitle">
             <i className="fas fa-train"></i> 汽車で訪れる観光客のためのガイド
+          </div>
+          <div className="visitor-count" id="visitor-count" style="margin-top: 12px; color: rgba(255,255,255,0.9); font-size: 14px;">
+            <i className="fas fa-users"></i> 訪問者数: <span id="total-views">-</span>人
           </div>
         </div>
       </header>
@@ -454,6 +458,56 @@ app.get('/api/image-proxy', async (c) => {
   } catch (error) {
     console.error('Image proxy error:', error);
     return c.json({ error: 'Image proxy request failed' }, 500);
+  }
+})
+
+// API: アクセスカウント記録
+app.post('/api/page-view', async (c) => {
+  const { env } = c;
+  const { page_path = '/' } = await c.req.json();
+  
+  if (!env.ANALYTICS_DB) {
+    console.warn('ANALYTICS_DB not configured');
+    return c.json({ success: false, message: 'Database not configured' }, 500);
+  }
+  
+  try {
+    // ページビュー数を増加
+    await env.ANALYTICS_DB.prepare(`
+      INSERT INTO page_views (page_path, view_count, last_updated) 
+      VALUES (?, 1, CURRENT_TIMESTAMP)
+      ON CONFLICT(page_path) 
+      DO UPDATE SET 
+        view_count = view_count + 1, 
+        last_updated = CURRENT_TIMESTAMP
+    `).bind(page_path).run();
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Page view tracking error:', error);
+    return c.json({ success: false }, 500);
+  }
+})
+
+// API: アクセス統計取得
+app.get('/api/analytics', async (c) => {
+  const { env } = c;
+  
+  if (!env.ANALYTICS_DB) {
+    return c.json({ total_views: 0 });
+  }
+  
+  try {
+    const result = await env.ANALYTICS_DB.prepare(`
+      SELECT SUM(view_count) as total_views FROM page_views
+    `).first();
+    
+    return c.json({ 
+      total_views: result?.total_views || 0 
+    });
+  } catch (error) {
+    console.error('Analytics fetch error:', error);
+    return c.json({ total_views: 0 });
   }
 })
 

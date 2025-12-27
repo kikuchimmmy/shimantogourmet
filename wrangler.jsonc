@@ -5,6 +5,13 @@
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  "d1_databases": [
+    {
+      "binding": "ANALYTICS_DB",
+      "database_name": "shimanto-analytics",
+      "database_id": "fef4e0f4-7357-48af-ae04-8ca0e10341fa"
+    }
   ]
   // "vars": {
   //   "MY_VAR": "my-variable"
